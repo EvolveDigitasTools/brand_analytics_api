@@ -1,8 +1,7 @@
 package com.pluuginstore.brand_analytics.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +10,8 @@ import java.util.List;
 @Table(name = "sku")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class SKUEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

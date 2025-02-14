@@ -2,8 +2,7 @@ package com.pluuginstore.brand_analytics.entity;
 
 import com.pluuginstore.brand_analytics.enums.OrderStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,6 +11,8 @@ import java.util.List;
 @Table(name = "orders")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderEntity {
 
     @Id

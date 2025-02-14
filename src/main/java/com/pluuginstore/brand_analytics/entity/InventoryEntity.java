@@ -1,8 +1,7 @@
 package com.pluuginstore.brand_analytics.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
@@ -10,6 +9,8 @@ import java.time.LocalDate;
 @Table(name = "inventory")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class InventoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

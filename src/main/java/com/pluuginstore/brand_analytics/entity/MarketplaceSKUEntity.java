@@ -1,27 +1,28 @@
 package com.pluuginstore.brand_analytics.entity;
 
+import com.pluuginstore.brand_analytics.enums.Marketplace;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "combo_sku_items")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ComboSKUItemEntity {
+public class MarketplaceSKUEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "combo_sku_id", nullable = false)
-    private SKUEntity comboSku;
-
-    @ManyToOne
     @JoinColumn(name = "sku_id", nullable = false)
     private SKUEntity sku;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private int quantity;
+    private Marketplace marketplace;
+
+    @Column(nullable = false, unique = true)
+    private String skuCode;
 }
