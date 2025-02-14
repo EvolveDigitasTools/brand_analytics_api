@@ -1,5 +1,6 @@
 package com.pluuginstore.brand_analytics.entity;
 
+import com.pluuginstore.brand_analytics.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +32,10 @@ public class OrderEntity {
 
     @Column(nullable = false)
     private String marketplace;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus orderStatus;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItemEntity> orderItems;
