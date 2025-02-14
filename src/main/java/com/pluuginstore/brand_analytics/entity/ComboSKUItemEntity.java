@@ -5,26 +5,22 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "order_items")
+@Table(name = "combo_sku_items")
 @Getter
 @Setter
-public class OrderItemEntity {
-
+public class ComboSKUItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private OrderEntity order;
+    @JoinColumn(name = "combo_sku_id", nullable = false)
+    private SKUEntity comboSku;
 
     @ManyToOne
-    @JoinColumn(name = "sku_id", nullable = true)
+    @JoinColumn(name = "sku_id", nullable = false)
     private SKUEntity sku;
 
     @Column(nullable = false)
     private int quantity;
-
-    @Column(nullable = false)
-    private double pricePerUnit;
 }

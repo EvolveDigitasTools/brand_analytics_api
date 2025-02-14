@@ -4,27 +4,28 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
-@Table(name = "order_items")
+@Table(name = "inventory")
 @Getter
 @Setter
-public class OrderItemEntity {
-
+public class InventoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private OrderEntity order;
-
-    @ManyToOne
-    @JoinColumn(name = "sku_id", nullable = true)
+    @JoinColumn(name = "sku_id", nullable = false)
     private SKUEntity sku;
+
+    @Column(unique = true)
+    private String batchId;
 
     @Column(nullable = false)
     private int quantity;
 
-    @Column(nullable = false)
-    private double pricePerUnit;
+    private LocalDate expiryDate;
 }
+
+
