@@ -19,7 +19,7 @@ public class OrderItemEntity {
     private OrderEntity order;
 
     @ManyToOne
-    @JoinColumn(name = "sku_id", nullable = true)
+    @JoinColumn(name = "sku_id")
     private SKUEntity sku;
 
     @Column(nullable = false)
