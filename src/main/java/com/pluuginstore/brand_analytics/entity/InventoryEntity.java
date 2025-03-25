@@ -26,6 +26,7 @@ public class InventoryEntity {
     @Column(nullable = false)
     private int quantity;
 
+    @Column
     private LocalDate expiryDate;
 }
 
