@@ -1,6 +1,7 @@
 package com.pluuginstore.brand_analytics.controller;
 
 import com.pluuginstore.brand_analytics.amazon.InventoryUpdateService;
+import com.pluuginstore.brand_analytics.dto.InventoryUpdateRequest;
 import com.pluuginstore.brand_analytics.entity.SKUDetailsEntity;
 import com.pluuginstore.brand_analytics.entity.SKUEntity;
 import com.pluuginstore.brand_analytics.repository.SKURepository;
@@ -50,13 +51,10 @@ public class InventoryController {
             // Assuming the repository method fetches SKUs with their details and inventory
             List<SKUEntity> skus = skuRepository.findAllWithDetailsAndInventory();
 
-            System.out.println(skus.toString());
-
             // Map each SKU to a response DTO-style map
             List<Map<String, Object>> inventoryList = skus.stream().map(sku -> {
                 Map<String, Object> skuMap = new HashMap<>();
                 SKUDetailsEntity details = sku.getDetails();
-                System.out.println(details != null ? details.toString() : "no detail");
 
                 skuMap.put("SKU Code", sku.getSkuCode());
                 skuMap.put("Category", details != null ? details.getCategory() : null);
@@ -99,6 +97,22 @@ public class InventoryController {
             errorResponse.put("data", errorData);
 
             return new ResponseEntity<>(errorResponse, HttpStatus.GATEWAY_TIMEOUT);
+        }
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<Map<String, Object>> updateInventory(@RequestBody InventoryUpdateRequest request) {
+        try {
+            inventoryUpdateService.updateInventory(request.getUpdates());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Inventory updated successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(error);
         }
     }
 }

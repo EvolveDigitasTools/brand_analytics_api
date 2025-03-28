@@ -14,4 +14,6 @@ public interface SKURepository extends JpaRepository<SKUEntity, Integer> {
             "left join fetch s.details " +
             "left join fetch s.inventoryRecords")
     List<SKUEntity> findAllWithDetailsAndInventory();
+
+    SKUEntity findBySkuCode(String skuCode);
 }
