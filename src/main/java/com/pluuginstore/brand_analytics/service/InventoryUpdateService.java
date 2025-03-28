@@ -1,10 +1,13 @@
-package com.pluuginstore.brand_analytics.amazon;
+package com.pluuginstore.brand_analytics.service;
 
+import com.pluuginstore.brand_analytics.amazon.AmazonConfig;
+import com.pluuginstore.brand_analytics.amazon.AmazonTokenManager;
 import com.pluuginstore.brand_analytics.amazon.response.*;
+import com.pluuginstore.brand_analytics.dto.InventoryOverviewResponse;
 import com.pluuginstore.brand_analytics.dto.InventoryUpdateDTO;
+import com.pluuginstore.brand_analytics.dto.VendorInventoryDTO;
 import com.pluuginstore.brand_analytics.entity.InventoryEntity;
 import com.pluuginstore.brand_analytics.entity.SKUEntity;
-import com.pluuginstore.brand_analytics.enums.Marketplace;
 import com.pluuginstore.brand_analytics.repository.InventoryRepository;
 import com.pluuginstore.brand_analytics.repository.SKURepository;
 import jakarta.transaction.Transactional;
@@ -36,6 +39,15 @@ public class InventoryUpdateService {
 
     @Autowired
     private InventoryRepository inventoryRepository;
+
+    public InventoryOverviewResponse getInventoryOverview() {
+        Integer totalInventory = inventoryRepository.findTotalInventory();
+        if (totalInventory == null) {
+            totalInventory = 0;
+        }
+        List<VendorInventoryDTO> vendorInventory = inventoryRepository.findInventoryByVendor();
+        return new InventoryOverviewResponse(totalInventory, vendorInventory);
+    }
 
     // Inject any necessary dependencies such as API clients, repositories, etc.
     public void updateInventory() throws Exception {

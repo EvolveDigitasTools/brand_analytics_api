@@ -17,7 +17,7 @@ public class InventoryEntity {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "sku_id", nullable = false)
+    @JoinColumn(name = "skuId", nullable = false)
     private SKUEntity sku;
 
     @Column(unique = true)

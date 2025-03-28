@@ -1,6 +1,7 @@
 package com.pluuginstore.brand_analytics.controller;
 
-import com.pluuginstore.brand_analytics.amazon.InventoryUpdateService;
+import com.pluuginstore.brand_analytics.dto.InventoryOverviewResponse;
+import com.pluuginstore.brand_analytics.service.InventoryUpdateService;
 import com.pluuginstore.brand_analytics.dto.InventoryUpdateRequest;
 import com.pluuginstore.brand_analytics.entity.SKUDetailsEntity;
 import com.pluuginstore.brand_analytics.entity.SKUEntity;
@@ -28,6 +29,12 @@ public class InventoryController {
 
     public InventoryController(InventoryUpdateService inventoryUpdateService) {
         this.inventoryUpdateService = inventoryUpdateService;
+    }
+
+    @GetMapping("/overview")
+    public ResponseEntity<InventoryOverviewResponse> getInventoryOverview() {
+        InventoryOverviewResponse overview = inventoryUpdateService.getInventoryOverview();
+        return ResponseEntity.ok(overview);
     }
 
     @PostMapping("/sync-amazon")
