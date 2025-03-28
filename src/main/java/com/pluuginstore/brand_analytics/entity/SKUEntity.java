@@ -36,7 +36,8 @@ public class SKUEntity {
     @OneToOne(mappedBy = "sku", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private SKUDetailsEntity details;
 
-    // Vendor relation can be modeled similarly if needed. Here it's just a vendorId.
-    @Column(name = "vendorId")
-    private Integer vendorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendorId", nullable = false)
+    private VendorEntity vendor;
+
 }
