@@ -12,14 +12,20 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for simplicity
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated() // Secure everything else
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-                .httpBasic(withDefaults()); // Basic authentication
-
+//        http
+//                .csrf(csrf -> csrf.disable()) // Disable CSRF for simplicity
+//                .authorizeHttpRequests(auth -> auth
+//                        .anyRequest().authenticated() // Secure everything else
+//                )
+//                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+//                .httpBasic(withDefaults()); // Basic authentication
+//
+//        return http.build();
+            http
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()) // Allow all requests
+                .csrf(csrf -> csrf.disable()) // Disable CSRF (if using REST APIs)
+                .formLogin(login -> login.disable()) // Disable form login
+                .httpBasic(basic -> basic.disable()); // Disable basic authentication
         return http.build();
     }
 }

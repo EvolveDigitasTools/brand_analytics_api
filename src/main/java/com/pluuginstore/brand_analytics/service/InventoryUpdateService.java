@@ -11,20 +11,28 @@ import com.pluuginstore.brand_analytics.entity.SKUEntity;
 import com.pluuginstore.brand_analytics.repository.InventoryRepository;
 import com.pluuginstore.brand_analytics.repository.SKURepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class InventoryUpdateService {
+
+    private static final Logger log = LoggerFactory.getLogger(InventoryUpdateService.class);
+
     @Autowired
     private AmazonTokenManager tokenManager;
 
@@ -206,35 +214,129 @@ public class InventoryUpdateService {
 //        }
 //    }
 
+    /**
+     * Updates inventory based on a list of DTOs, setting the update timestamp on affected SKUs.
+     * Optimized for bulk operations.
+     *
+     * @param updates         List of inventory updates.
+     * @param updateTimestamp The timestamp to set on updated SKUs.
+     */
     @Transactional
-    public void updateInventory(List<InventoryUpdateDTO> updates) {
-        // For each update, find the SKU by skuCode, then update its inventory.
-        updates.forEach(update -> {
-            // Example pseudo-code:
-             SKUEntity sku = skuRepository.findBySkuCode(update.getSkuCode());
+    public void updateInventory(List<InventoryUpdateDTO> updates, LocalDateTime updateTimestamp) {
+        if (CollectionUtils.isEmpty(updates)) {
+            log.info("No inventory updates provided.");
+            return;
+        }
+
+        // 1. Extract SKU codes and fetch SKUs in bulk
+        List<String> skuCodes = updates.stream()
+                .map(InventoryUpdateDTO::getSkuCode)
+                .distinct()
+                .toList();
+
+        List<SKUEntity> fetchedSkus = skuRepository.findBySkuCodeIn(skuCodes);
+        Map<String, SKUEntity> skuMap = fetchedSkus.stream()
+                .collect(Collectors.toMap(SKUEntity::getSkuCode, sku -> sku));
+
+        // 2. Fetch existing inventory records for these SKUs in bulk
+        List<InventoryEntity> existingInventories = inventoryRepository.findBySkuIn(fetchedSkus);
+
+        // 3. Create a map for quick lookup: Map<SkuId, Map<ExpiryDate (can be null), InventoryEntity>>
+        Map<Integer, Map<LocalDate, InventoryEntity>> inventoryMap = new HashMap<>();
+        for (InventoryEntity inv : existingInventories) {
+            inventoryMap
+                    .computeIfAbsent(inv.getSku().getId(), k -> new HashMap<>())
+                    .put(inv.getExpiryDate(), inv);
+        }
+
+        // 4. Prepare lists for bulk saving
+        List<InventoryEntity> inventoryToSave = new ArrayList<>();
+        List<InventoryEntity> inventoryToDelete = new ArrayList<>();
+        Set<SKUEntity> skusToUpdateTimestamp = new HashSet<>();
+
+        // 5. Process updates
+        for (InventoryUpdateDTO update : updates) {
+            SKUEntity sku = skuMap.get(update.getSkuCode());
             if (sku == null) {
-                throw new RuntimeException("SKU not found: " + update.getSkuCode());
+                // Option 1: Throw exception for bad data
+                throw new RuntimeException("SKU not found during bulk update: " + update.getSkuCode());
+                // Option 2: Log and skip
+                // log.warn("SKU not found, skipping inventory update for: {}", update.getSkuCode());
+                // continue;
             }
 
-            List<InventoryEntity> inventoryList = sku.getInventoryRecords();
-            if (inventoryList == null || inventoryList.isEmpty()) {
-                // Create new inventory record if none exists
-                InventoryEntity inventory = new InventoryEntity();
-                inventory.setSku(sku);
-                inventory.setQuantity(update.getUpdatedInventory());
-                inventory.setExpiryDate(update.getExpiryDate());
-                inventoryRepository.save(inventory);
+            LocalDate expiryDate = update.getExpiryDate(); // Can be null
+            Integer skuId = sku.getId();
+            int newQuantity = update.getUpdatedInventory();
 
-                // Optionally add to SKUEntity's list
-                sku.getInventoryRecords().add(inventory);
-                skuRepository.save(sku);
-            } else {
-                // Update the first inventory record (adjust logic as needed)
-                InventoryEntity inventory = inventoryList.get(0);
-                inventory.setQuantity(update.getUpdatedInventory());
-                inventory.setExpiryDate(update.getExpiryDate());
-                inventoryRepository.save(inventory);
+            // Find existing inventory or create a new one
+            InventoryEntity inventoryEntity = inventoryMap
+                    .getOrDefault(skuId, Collections.emptyMap())
+                    .get(expiryDate);
+
+            if (inventoryEntity != null) {
+                // Update existing inventory record
+                // Only add to save list if quantity actually changes
+                if (inventoryEntity.getQuantity() != update.getUpdatedInventory()) {
+                    if(newQuantity == 0) {
+                        if (!inventoryToDelete.contains(inventoryEntity)) {
+                            inventoryToDelete.add(inventoryEntity);
+                        }
+                        inventoryToSave.remove(inventoryEntity);
+                        inventoryMap.getOrDefault(skuId, Collections.emptyMap()).remove(expiryDate);
+                    } else {
+                        inventoryEntity.setQuantity(newQuantity);
+                        if (!inventoryToSave.contains(inventoryEntity)) {
+                            inventoryToSave.add(inventoryEntity);
+                        }
+                        inventoryToDelete.remove(inventoryEntity);
+                    }
+                }
+                // Ensure it's correctly mapped back if it was newly created in this transaction run
+                // (though less likely with this bulk fetch approach)
+                inventoryMap.computeIfAbsent(skuId, k -> new HashMap<>()).put(expiryDate, inventoryEntity);
+
+            } else if(newQuantity > 0){
+                // Create new inventory record
+                inventoryEntity = new InventoryEntity();
+                inventoryEntity.setSku(sku);
+                inventoryEntity.setQuantity(update.getUpdatedInventory());
+                inventoryEntity.setExpiryDate(expiryDate);
+                // Add the new entity to the save list
+                inventoryToSave.add(inventoryEntity);
+                // Add the new entity to our lookup map for potential subsequent updates in the same batch
+                inventoryMap.computeIfAbsent(skuId, k -> new HashMap<>()).put(expiryDate, inventoryEntity);
             }
-        });
+
+            // Mark SKU for timestamp update
+            sku.setInventoryUpdatedAt(updateTimestamp);
+            skusToUpdateTimestamp.add(sku);
+        }
+
+        // 6. Perform bulk database operations
+        if (!inventoryToDelete.isEmpty()) {
+            log.info("Deleting {} inventory records.", inventoryToDelete.size());
+            inventoryRepository.deleteAllInBatch(inventoryToDelete); // Use deleteAllInBatch for efficiency
+        }
+
+        // Filter out any entities that might be marked for both save and delete (shouldn't happen with current logic, but safe)
+        List<InventoryEntity> finalInventoryToSave = inventoryToSave.stream()
+                .filter(inv -> !inventoryToDelete.contains(inv))
+                .collect(Collectors.toList());
+
+        if (!finalInventoryToSave.isEmpty()) {
+            log.info("Saving {} inventory records.", finalInventoryToSave.size());
+            inventoryRepository.saveAll(finalInventoryToSave);
+        } else if (inventoryToDelete.isEmpty()) { // Only log this if nothing was saved OR deleted
+            log.info("No inventory quantities needed updating or deleting.");
+        }
+
+        if (!skusToUpdateTimestamp.isEmpty()) {
+            log.info("Updating inventoryUpdatedAt timestamp for {} SKUs.", skusToUpdateTimestamp.size());
+            // Note: saveAll will perform UPDATE statements for existing entities
+            skuRepository.saveAll(skusToUpdateTimestamp);
+        }
+
+        log.info("Inventory update process completed successfully for timestamp: {}", updateTimestamp);
     }
 }

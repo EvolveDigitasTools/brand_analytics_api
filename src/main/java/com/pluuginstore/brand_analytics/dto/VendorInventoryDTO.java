@@ -6,7 +6,7 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 public class VendorInventoryDTO {
-    private Integer vendorId;
+    private String vendorCode;
     private String vendorName;
     private Long inventoryCount;
 }

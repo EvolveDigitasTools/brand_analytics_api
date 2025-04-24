@@ -29,6 +29,9 @@ public class VendorEntity {
     @Column(nullable = false, unique = true)
     private String companyName;
 
+    @Column
+    private String brandName;
+
     @OneToMany(mappedBy = "vendor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SKUEntity> skus;
 }

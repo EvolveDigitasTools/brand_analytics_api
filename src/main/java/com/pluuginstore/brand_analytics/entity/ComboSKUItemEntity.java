@@ -12,7 +12,7 @@ import lombok.*;
 public class ComboSKUItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @ManyToOne
     @JoinColumn(name = "combo_sku_id", nullable = false)

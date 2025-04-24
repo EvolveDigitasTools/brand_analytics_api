@@ -5,12 +5,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@Table(name = "marketplace_inventory")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MarketplaceSKUEntity {
-
+public class MarketplaceInventoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,6 +23,8 @@ public class MarketplaceSKUEntity {
     @Column(nullable = false)
     private Marketplace marketplace;
 
-    @Column(nullable = false, unique = true)
-    private String skuCode;
+    @Column(nullable = false)
+    private int quantity;
 }
+
+

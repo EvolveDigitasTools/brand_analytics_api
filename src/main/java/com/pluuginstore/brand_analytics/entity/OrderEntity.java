@@ -1,5 +1,6 @@
 package com.pluuginstore.brand_analytics.entity;
 
+import com.pluuginstore.brand_analytics.enums.Marketplace;
 import com.pluuginstore.brand_analytics.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,7 +18,7 @@ public class OrderEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(nullable = false)
     private String orderId;
@@ -28,11 +29,9 @@ public class OrderEntity {
     @Column(nullable = false)
     private double orderValue;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String brand;
-
-    @Column(nullable = false)
-    private String marketplace;
+    private Marketplace marketplace;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -40,4 +39,8 @@ public class OrderEntity {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItemEntity> orderItems;
+
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id")
+    private OrderAddressEntity address;
 }
