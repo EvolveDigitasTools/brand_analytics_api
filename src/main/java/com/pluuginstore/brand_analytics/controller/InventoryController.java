@@ -6,6 +6,14 @@ import com.pluuginstore.brand_analytics.dto.InventoryUpdateRequest;
 import com.pluuginstore.brand_analytics.entity.SKUDetailsEntity;
 import com.pluuginstore.brand_analytics.entity.SKUEntity;
 import com.pluuginstore.brand_analytics.repository.SKURepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +28,10 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/inventory")
 @CrossOrigin(origins = {"http://localhost:5173/", "https://brand-analytics.globalplugin.com/"})
+@Tag(name = "Inventory Management API", description = "APIs for managing and viewing SKU inventory")
 public class InventoryController {
+
+    private static final Logger Log = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
     private SKURepository skuRepository;
@@ -57,6 +68,85 @@ public class InventoryController {
      * Mapped to GET /api/inventory and /api/inventory/
      */
     @GetMapping({"", "/"})
+    @Operation(
+            summary = "Get Inventory for All SKUs",
+            description = "Retrieves detailed information and current inventory levels (including expiry dates and recent sales) for all SKUs in the system.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "All inventory retrieved successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Map.class),
+                                    examples = @ExampleObject(
+                                            name = "Successful Inventory Response",
+                                            value = """
+                        {
+                            "success": true,
+                            "message": "All inventory retrieved successfully",
+                            "data": {
+                                "inventory": [
+                                    {
+                                        "SKU Code": "SKU001",
+                                        "Category": "Electronics",
+                                        "Product Title": "Wireless Mouse",
+                                        "SAP Code": "SAP123",
+                                        "EAN": "1234567890123",
+                                        "salesLast15Days": 75,
+                                        "Current Inventory": [
+                                            {
+                                                "count": 50,
+                                                "expiry": null
+                                            },
+                                            {
+                                                "count": 10,
+                                                "expiry": "2024-12-31"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "SKU Code": "SKU002",
+                                        "Category": "Accessories",
+                                        "Product Title": "USB-C Cable",
+                                        "SAP Code": "SAP456",
+                                        "EAN": "9876543210987",
+                                        "salesLast15Days": 150,
+                                        "Current Inventory": [
+                                            {
+                                                "count": 200,
+                                                "expiry": null
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Internal server error",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Map.class),
+                                    examples = @ExampleObject(
+                                            name = "Error Response",
+                                            value = """
+                        {
+                            "success": false,
+                            "message": "An internal error occurred while retrieving inventory: [Error Details]",
+                            "data": {
+                                "source": "InventoryController -> getAllInventory"
+                            }
+                        }
+                    """
+                                    )
+                            )
+                    )
+            }
+    )
     public ResponseEntity<Map<String, Object>> getAllInventory() {
         try {
             List<SKUEntity> skus = skuRepository.findAllWithDetailsAndInventory();
