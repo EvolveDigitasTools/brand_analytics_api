@@ -48,15 +48,6 @@ public class InventoryUpdateService {
     @Autowired
     private InventoryRepository inventoryRepository;
 
-    public InventoryOverviewResponse getInventoryOverview() {
-        Integer totalInventory = inventoryRepository.findTotalInventory();
-        if (totalInventory == null) {
-            totalInventory = 0;
-        }
-        List<VendorInventoryDTO> vendorInventory = inventoryRepository.findInventoryByVendor();
-        return new InventoryOverviewResponse(totalInventory, vendorInventory);
-    }
-
     // Inject any necessary dependencies such as API clients, repositories, etc.
     public void updateInventory() throws Exception {
         String reportId = createReport();

@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.pluuginstore.brand_analytics.dto.inventory.InventoryDetailDTO;
+
 @Entity
 @Table(name = "sku")
 @Getter
@@ -44,4 +46,12 @@ public class SKUEntity {
     @JoinColumn(name = "vendorId")
     private VendorEntity vendor;
 
+    public List<InventoryDetailDTO> getCurrentInventory() {
+        List<InventoryDetailDTO> inventoryDetailDTOList = new ArrayList<>();
+        for (InventoryEntity inventory : inventoryRecords) {
+            InventoryDetailDTO dto = new InventoryDetailDTO(inventory.getQuantity(), inventory.getExpiryDate());
+            inventoryDetailDTOList.add(dto);
+        }
+        return inventoryDetailDTOList;
+    }
 }

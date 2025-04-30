@@ -3,6 +3,7 @@ package com.pluuginstore.brand_analytics.controller;
 import com.pluuginstore.brand_analytics.dto.OrderAddressRequest;
 import com.pluuginstore.brand_analytics.dto.OrderItemRequest;
 import com.pluuginstore.brand_analytics.dto.OrderRequest;
+import com.pluuginstore.brand_analytics.dto.OrderResponse;
 import com.pluuginstore.brand_analytics.entity.*;
 import com.pluuginstore.brand_analytics.enums.OrderStatus;
 import com.pluuginstore.brand_analytics.repository.InventoryRepository;
@@ -22,7 +23,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/orders")
-@CrossOrigin(origins = {"http://localhost:5173/", "https://brand-analytics.globalplugin.com/"})
+@CrossOrigin(origins = { "http://localhost:5173/", "https://brand-analytics.globalplugin.com/" })
 public class OrderController {
 
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
@@ -38,6 +39,29 @@ public class OrderController {
 
     @Autowired
     private ComboSKUItemRepository comboSKUItemRepository;
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<?> getOrderById(@PathVariable String orderId) {
+        Optional<OrderEntity> orderOpt = orderRepository.findByOrderId(orderId);
+
+        if (orderOpt.isPresent()) {
+            OrderEntity order = orderOpt.get();
+            OrderResponse orderResponse = new OrderResponse();
+            orderResponse.setOrderId(order.getOrderId());
+            orderResponse.setOrderDateTime(order.getOrderDateTime());
+            orderResponse.setOrderValue(order.getOrderValue());
+            orderResponse.setMarketplace(order.getMarketplace());
+            orderResponse.setOrderStatus(order.getOrderStatus());
+            return ResponseEntity.ok(orderResponse);
+        } else {
+            log.warn("Order not found with ID: {}", orderId);
+            // Return a standard 404 response
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Order not found with ID: " + orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+    }
 
     @PostMapping("/update")
     @Transactional
@@ -160,9 +184,11 @@ public class OrderController {
         if (orderEntity.getOrderId() == null) {
             if (orderRequest.getOrderStatus().equals(OrderStatus.SHIPPED) ||
                     orderRequest.getOrderStatus().equals(OrderStatus.DELIVERED) ||
-                    orderRequest.getOrderStatus().equals(OrderStatus.COMPLETED)) {
+                    orderRequest.getOrderStatus().equals(OrderStatus.COMPLETED) ||
+                    orderRequest.getOrderStatus().equals(OrderStatus.RETURNED_BAD)) {
                 inventoryAdjustment = 1;
-            }
+            } else if (orderRequest.getOrderStatus().equals(OrderStatus.DOOR_STEP_EXCHANGEFAILED))
+                inventoryAdjustment = 2;
         } else {
             // Existing order: handle status changes
             OrderStatus previousStatus = orderEntity.getOrderStatus();
@@ -171,7 +197,11 @@ public class OrderController {
             if (previousStatus.equals(OrderStatus.SHIPPED) && newStatus.equals(OrderStatus.CANCELLED)) {
                 // SHIPPED to CANCELLED: add inventory back
                 inventoryAdjustment = -1;
-            }
+            } else if ((previousStatus.equals(OrderStatus.SHIPPED) || previousStatus.equals(OrderStatus.DELIVERED))
+                    && newStatus.equals(OrderStatus.RETURNED_GOOD))
+                inventoryAdjustment = -1;
+            else if ((previousStatus.equals(OrderStatus.SHIPPED) || previousStatus.equals(OrderStatus.DELIVERED)) && newStatus.equals(OrderStatus.DOOR_STEP_EXCHANGEFAILED))
+                inventoryAdjustment = 1;
             // Add more conditions here for other status transitions if needed
         }
         return inventoryAdjustment;

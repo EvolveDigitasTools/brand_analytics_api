@@ -4,6 +4,8 @@ public enum OrderStatus {
     SHIPPED,
     CANCELLED,
     DELIVERED,
-    RETURNED,
-    COMPLETED
+    RETURNED_GOOD,
+    RETURNED_BAD,
+    COMPLETED,
+    DOOR_STEP_EXCHANGEFAILED
 }
