@@ -23,12 +23,11 @@ public interface SKURepository extends JpaRepository<SKUEntity, Integer> {
                         "where s.isCombo = true")
         List<SKUEntity> findAllComboWithDetails();
 
-        @Query("SELECT s FROM SKUEntity s " +
-                        "LEFT JOIN FETCH s.details " +
-                        "LEFT JOIN FETCH s.inventoryRecords " +
-                        "LEFT JOIN s.vendor v " + // Join SKUEntity (s) with its VendorEntity (v)
-                        "WHERE v.vendorCode = :vendorCode") // Filter on the vendorCode within the VendorEntity (v)
-        List<SKUEntity> findAllWithDetailsAndInventoryByVendorCode(@Param("vendorCode") String vendorCode);
+        @Query("select distinct s from SKUEntity s " +
+                        "left join fetch s.details " +
+                        "left join fetch s.inventoryRecords " +
+                        "where s.isCombo = false")
+        List<SKUEntity> findAllSingleWithDetailsAndInventoryByVendor(@Param("vendorId") Integer vendorId);
 
         SKUEntity findBySkuCode(String skuCode);
 

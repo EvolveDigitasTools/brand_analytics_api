@@ -5,9 +5,11 @@ import com.pluuginstore.brand_analytics.dto.VendorInventoryDTO;
 import com.pluuginstore.brand_analytics.dto.inventory.InventoryItemDTO;
 import com.pluuginstore.brand_analytics.entity.ComboSKUItemEntity;
 import com.pluuginstore.brand_analytics.entity.SKUEntity;
+import com.pluuginstore.brand_analytics.entity.VendorEntity;
 import com.pluuginstore.brand_analytics.repository.ComboSKUItemRepository;
 import com.pluuginstore.brand_analytics.repository.InventoryRepository;
 import com.pluuginstore.brand_analytics.repository.SKURepository;
+import com.pluuginstore.brand_analytics.repository.VendorRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,9 @@ public class InventoryService {
 
     @Autowired
     private InventoryRepository inventoryRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
 
     public List<InventoryItemDTO> getAllInventoryAndRecentSales() {
         try {
@@ -63,12 +68,48 @@ public class InventoryService {
         } catch (Exception e) {
             log.error("Error retrieving inventory and sales data: {}", e.getMessage(), e);
             return new ArrayList<InventoryItemDTO>();
-            // return buildErrorResponse(e, "InventoryController -> getAllInventory");
         }
     }
 
     public List<InventoryItemDTO> getAllInventoryAndRecentSalesByVendor(String vendorCode) {
-        return new ArrayList<InventoryItemDTO>();
+        try {
+            VendorEntity vendor = vendorRepository.findByVendorCode(vendorCode);
+            if (vendor == null) {
+                log.error("Vendor with code {} not found", vendorCode);
+                return new ArrayList<InventoryItemDTO>();
+            }
+            List<SKUEntity> skus = skuRepository.findAllSingleWithDetailsAndInventory();
+            List<SKUEntity> filteredSks = skus.stream()
+                    .filter(sku -> sku.getVendor().getId().equals(vendor.getId()))
+                    .collect(Collectors.toList());
+
+            LocalDateTime date15DaysAgo = LocalDateTime.now().minusDays(15);
+            List<Object[]> salesData = skuRepository.findSalesfromStartDate(date15DaysAgo);
+
+            Map<String, Integer> salesMap = salesData.stream()
+                    .collect(Collectors.toMap(
+                            data -> (String) data[0],
+                            data -> ((Long) data[1]).intValue()
+                    ));
+
+            adjustSalesForCombos(salesMap);
+
+            return filteredSks.stream()
+                    .map(sku -> new InventoryItemDTO(
+                            sku.getSkuCode(),
+                            sku.getDetails().getCategory(),
+                            sku.getName(),
+                            sku.getDetails().getSapCode(),
+                            sku.getEan(),
+                            salesMap.getOrDefault(sku.getSkuCode(), 0),
+                            sku.getCurrentInventory()
+                    ))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving inventory and sales data: {}", e.getMessage(), e);
+            return new ArrayList<InventoryItemDTO>();
+            // return buildErrorResponse(e, "InventoryController -> getAllInventory");
+        }
     }
 
     private void adjustSalesForCombos(Map<String, Integer> salesMap) {

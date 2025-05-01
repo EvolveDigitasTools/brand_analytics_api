@@ -2,6 +2,8 @@ package com.pluuginstore.brand_analytics.repository;
 
 import com.pluuginstore.brand_analytics.dto.VendorDTO;
 import com.pluuginstore.brand_analytics.entity.OrderItemEntity;
+import com.pluuginstore.brand_analytics.entity.VendorEntity;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -12,4 +14,7 @@ import java.util.List;
 public interface VendorRepository extends JpaRepository<OrderItemEntity, Integer> {
     @Query("SELECT new com.pluuginstore.brand_analytics.dto.VendorDTO(v.brandName, v.vendorCode) FROM VendorEntity v")
     List<VendorDTO> findAllVendors();
+
+    @Query("SELECT v FROM VendorEntity v WHERE v.vendorCode = :vendorCode")
+    VendorEntity findByVendorCode(String vendorCode);
 }
